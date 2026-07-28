@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { ReimportButton } from "@/components/ReimportButton";
 import { CallStatusControl, type CallStatus } from "@/components/CallStatusControl";
+import { TrainerAssignSelect, type TrainerOption } from "@/components/TrainerAssignSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ interface Lead {
   phone: string | null;
   message: string | null;
   call_status: CallStatus;
+  trainer_id: number | null;
   created_at: string;
 }
 
@@ -25,22 +27,33 @@ interface ImportLogRow {
   created_at: string;
 }
 
-async function loadData(): Promise<{ leads: Lead[]; logs: ImportLogRow[]; dbError: string | null }> {
+async function loadData(): Promise<{
+  leads: Lead[];
+  logs: ImportLogRow[];
+  trainers: TrainerOption[];
+  dbError: string | null;
+}> {
   if (!process.env.DATABASE_URL) {
-    return { leads: [], logs: [], dbError: "DATABASE_URL nenustatytas — sukonfigūruok .env ir paleisk npm run migrate." };
+    return {
+      leads: [],
+      logs: [],
+      trainers: [],
+      dbError: "DATABASE_URL nenustatytas — sukonfigūruok .env ir paleisk npm run migrate.",
+    };
   }
   try {
-    const [leads, logs] = await Promise.all([
+    const [leads, logs, trainers] = await Promise.all([
       query<Lead>(
-        "SELECT id, name, email, phone, message, call_status, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
+        "SELECT id, name, email, phone, message, call_status, trainer_id, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
       ),
       query<ImportLogRow>(
         "SELECT id, message_id, status, email, phone, parsed_via, error_message, created_at FROM import_log ORDER BY created_at DESC LIMIT 20"
       ),
+      query<TrainerOption>("SELECT id, name FROM trainers ORDER BY name"),
     ]);
-    return { leads, logs, dbError: null };
+    return { leads, logs, trainers, dbError: null };
   } catch (err) {
-    return { leads: [], logs: [], dbError: err instanceof Error ? err.message : "Nepavyko prisijungti prie DB" };
+    return { leads: [], logs: [], trainers: [], dbError: err instanceof Error ? err.message : "Nepavyko prisijungti prie DB" };
   }
 }
 
@@ -49,7 +62,7 @@ function formatDate(value: string): string {
 }
 
 export default async function HomePage() {
-  const { leads, logs, dbError } = await loadData();
+  const { leads, logs, trainers, dbError } = await loadData();
 
   return (
     <main>
@@ -82,6 +95,7 @@ export default async function HomePage() {
                     <th>Žinutė</th>
                     <th>Sukurta</th>
                     <th>Skambutis</th>
+                    <th>Priskirtas treneris</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -96,6 +110,9 @@ export default async function HomePage() {
                       <td className="muted">{formatDate(lead.created_at)}</td>
                       <td>
                         <CallStatusControl leadId={lead.id} initialStatus={lead.call_status} />
+                      </td>
+                      <td>
+                        <TrainerAssignSelect leadId={lead.id} trainers={trainers} initialTrainerId={lead.trainer_id} />
                       </td>
                     </tr>
                   ))}

@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS trainers (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  role TEXT
+);
+
 CREATE TABLE IF NOT EXISTS leads (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -5,6 +11,7 @@ CREATE TABLE IF NOT EXISTS leads (
   phone TEXT,
   message TEXT,
   call_status TEXT NOT NULL DEFAULT 'not_called' CHECK (call_status IN ('not_called', 'answered', 'no_answer')),
+  trainer_id INTEGER REFERENCES trainers(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

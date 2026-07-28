@@ -14,14 +14,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const body = await req.json().catch(() => null);
-  const callStatus = body?.callStatus;
-  if (typeof callStatus !== "string" || !VALID_STATUSES.has(callStatus)) {
-    return NextResponse.json({ error: "Neteisinga skambučio būsena" }, { status: 400 });
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Neteisingas užklausos turinys" }, { status: 400 });
   }
 
+  const setClauses: string[] = [];
+  const values: unknown[] = [];
+
+  if ("callStatus" in body) {
+    if (typeof body.callStatus !== "string" || !VALID_STATUSES.has(body.callStatus)) {
+      return NextResponse.json({ error: "Neteisinga skambučio būsena" }, { status: 400 });
+    }
+    values.push(body.callStatus);
+    setClauses.push(`call_status = $${values.length}`);
+  }
+
+  if ("trainerId" in body) {
+    const trainerId = body.trainerId;
+    if (trainerId !== null && !Number.isInteger(trainerId)) {
+      return NextResponse.json({ error: "Neteisingas trenerio ID" }, { status: 400 });
+    }
+    values.push(trainerId);
+    setClauses.push(`trainer_id = $${values.length}`);
+  }
+
+  if (setClauses.length === 0) {
+    return NextResponse.json({ error: "Nėra ką atnaujinti" }, { status: 400 });
+  }
+
+  values.push(leadId);
   const updated = await queryOne(
-    "UPDATE leads SET call_status = $1 WHERE id = $2 RETURNING id, call_status",
-    [callStatus, leadId]
+    `UPDATE leads SET ${setClauses.join(", ")} WHERE id = $${values.length} RETURNING id, call_status, trainer_id`,
+    values
   );
 
   if (!updated) {

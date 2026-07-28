@@ -146,3 +146,17 @@ th {
 .call-dot-not-called.active { background: var(--warning); border-color: var(--warning); }
 .call-dot-answered.active { background: var(--success); border-color: var(--success); }
 .call-dot-no-answer.active { background: var(--error); border-color: var(--error); }
+
+.trainer-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  max-width: 180px;
+}
+
+.trainer-select:disabled {
+  opacity: 0.6;
+}
