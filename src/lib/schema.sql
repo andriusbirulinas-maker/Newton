@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS leads (
   email TEXT,
   phone TEXT,
   message TEXT,
+  interest TEXT,
   call_status TEXT NOT NULL DEFAULT 'not_called' CHECK (call_status IN ('not_called', 'answered', 'no_answer')),
   trainer_id INTEGER REFERENCES trainers(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

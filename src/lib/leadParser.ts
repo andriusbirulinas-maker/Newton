@@ -5,6 +5,7 @@ export interface ParsedLead {
   email: string | null;
   phone: string | null;
   message: string | null;
+  interest: string | null;
 }
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -25,10 +26,14 @@ export function normalizePhone(raw: string | null | undefined): string | null {
 
 // newtongym.lt sends three distinct plain-text shapes:
 //
-// 1) Registration form ("Išbandyk pirmą treniruotę" etc.):
+// 1) Registration form ("Išbandyk pirmą treniruotę" etc.) — the line right after
+//    the phone number names the training category the lead registered for
+//    (e.g. "Cross Training", "Kainos", "Grupinės treniruotės"), followed by its URL:
 //      Brigita
 //      El. pašto adresas: brigita.biliunaite@gmail.com
 //      Telefono numeris: +37065576321
+//      Cross Training
+//      https://newtongym.lt/grupines/cross-training/
 //
 // 2) Forwarded Meta/Facebook ad leads (from Miglė Vyšedvorskytė):
 //      Vardas Pavardė: Miglė Vyšedvorskytė
@@ -89,6 +94,24 @@ function extractName(text: string): string | null {
   return null;
 }
 
+// The training category a lead registered for sits on the first substantive line
+// after the phone number, right before that category's URL.
+function extractInterest(text: string): string | null {
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  const phoneLineIndex = lines.findIndex((l) => LABELS.phone.some((label) => l.toLowerCase().startsWith(label)));
+  if (phoneLineIndex === -1) return null;
+
+  for (let i = phoneLineIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (URL_RE.test(line)) continue;
+    if (EMAIL_RE.test(line)) continue;
+    if (isLabeledLine(line)) continue;
+    return line;
+  }
+  return null;
+}
+
 export function regexParseLead(text: string): ParsedLead | null {
   const message = findMessage(text);
   const name = findLabeledValue(text, LABELS.name) ?? extractName(text) ?? (message ? NO_NAME_PLACEHOLDER : null);
@@ -99,9 +122,11 @@ export function regexParseLead(text: string): ParsedLead | null {
   const phoneRaw = findLabeledValue(text, LABELS.phone);
   const phone = normalizePhone(phoneRaw);
 
+  const interest = message ? null : extractInterest(text);
+
   if (!name || (!email && !phone)) return null;
 
-  return { name, email, phone, message };
+  return { name, email, phone, message, interest };
 }
 
 let anthropicClient: Anthropic | null = null;
@@ -116,7 +141,7 @@ function getClient(): Anthropic {
 
 const EXTRACT_TOOL: Anthropic.Tool = {
   name: "extract_lead",
-  description: "Extract a lead's contact details and any free-text message from an email body",
+  description: "Extract a lead's contact details, the service/category they registered for, and any free-text message from an email body",
   input_schema: {
     type: "object",
     properties: {
@@ -124,8 +149,12 @@ const EXTRACT_TOOL: Anthropic.Tool = {
       email: { type: ["string", "null"] },
       phone: { type: ["string", "null"] },
       message: { type: ["string", "null"] },
+      interest: {
+        type: ["string", "null"],
+        description: "The training service/category the lead registered for, e.g. 'Cross Training', 'Grupinės treniruotės', 'Kainos'",
+      },
     },
-    required: ["name", "email", "phone", "message"],
+    required: ["name", "email", "phone", "message", "interest"],
   },
 };
 
@@ -141,7 +170,7 @@ export async function claudeParseLead(text: string): Promise<ParsedLead | null> 
     messages: [
       {
         role: "user",
-        content: `Ištrauk potencialaus kliento vardą, el. paštą, telefono numerį ir laisvo teksto žinutę (jei yra) iš šio laiško teksto. Jei tai bendra užklausa be vardo (pvz. klausimas ar skundas), naudok name="${NO_NAME_PLACEHOLDER}". Jei kurio nors lauko rasti nepavyksta, naudok null.\n\n---\n${text.slice(0, 6000)}\n---`,
+        content: `Ištrauk potencialaus kliento vardą, el. paštą, telefono numerį, treniruočių paslaugos/kategorijos pavadinimą (jei registravosi į konkrečią treniruotę) ir laisvo teksto žinutę (jei yra) iš šio laiško teksto. Jei tai bendra užklausa be vardo (pvz. klausimas ar skundas), naudok name="${NO_NAME_PLACEHOLDER}". Jei kurio nors lauko rasti nepavyksta, naudok null.\n\n---\n${text.slice(0, 6000)}\n---`,
       },
     ],
   });
@@ -154,6 +183,7 @@ export async function claudeParseLead(text: string): Promise<ParsedLead | null> 
     email?: string | null;
     phone?: string | null;
     message?: string | null;
+    interest?: string | null;
   };
   if (!input.name) return null;
 
@@ -161,5 +191,5 @@ export async function claudeParseLead(text: string): Promise<ParsedLead | null> 
   const phone = normalizePhone(input.phone ?? null);
   if (!email && !phone) return null;
 
-  return { name: input.name, email, phone, message: input.message ?? null };
+  return { name: input.name, email, phone, message: input.message ?? null, interest: input.interest ?? null };
 }

@@ -71,8 +71,8 @@ async function findExistingLead(email: string | null, phone: string | null): Pro
 
 async function insertLead(lead: ParsedLead): Promise<number> {
   const row = await queryOne<{ id: number }>(
-    "INSERT INTO leads (name, email, phone, message) VALUES ($1, $2, $3, $4) RETURNING id",
-    [lead.name, lead.email, lead.phone, lead.message]
+    "INSERT INTO leads (name, email, phone, message, interest) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    [lead.name, lead.email, lead.phone, lead.message, lead.interest]
   );
   return row!.id;
 }

@@ -11,6 +11,7 @@ interface Lead {
   email: string | null;
   phone: string | null;
   message: string | null;
+  interest: string | null;
   call_status: CallStatus;
   trainer_id: number | null;
   created_at: string;
@@ -44,7 +45,7 @@ async function loadData(): Promise<{
   try {
     const [leads, logs, trainers] = await Promise.all([
       query<Lead>(
-        "SELECT id, name, email, phone, message, call_status, trainer_id, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
+        "SELECT id, name, email, phone, message, interest, call_status, trainer_id, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
       ),
       query<ImportLogRow>(
         "SELECT id, message_id, status, email, phone, parsed_via, error_message, created_at FROM import_log ORDER BY created_at DESC LIMIT 20"
@@ -92,6 +93,7 @@ export default async function HomePage() {
                     <th>Vardas</th>
                     <th>El. paštas</th>
                     <th>Telefonas</th>
+                    <th>Dominasi</th>
                     <th>Žinutė</th>
                     <th>Sukurta</th>
                     <th>Skambutis</th>
@@ -104,6 +106,7 @@ export default async function HomePage() {
                       <td>{lead.name}</td>
                       <td className="muted">{lead.email || "—"}</td>
                       <td className="muted">{lead.phone || "—"}</td>
+                      <td className="muted">{lead.interest || "—"}</td>
                       <td className="muted" style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
                         {lead.message || "—"}
                       </td>
