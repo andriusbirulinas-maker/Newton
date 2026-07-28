@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS leads (
   email TEXT,
   phone TEXT,
   message TEXT,
+  call_status TEXT NOT NULL DEFAULT 'not_called' CHECK (call_status IN ('not_called', 'answered', 'no_answer')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

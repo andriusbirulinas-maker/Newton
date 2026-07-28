@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { ReimportButton } from "@/components/ReimportButton";
+import { CallStatusControl, type CallStatus } from "@/components/CallStatusControl";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ interface Lead {
   email: string | null;
   phone: string | null;
   message: string | null;
+  call_status: CallStatus;
   created_at: string;
 }
 
@@ -29,7 +31,9 @@ async function loadData(): Promise<{ leads: Lead[]; logs: ImportLogRow[]; dbErro
   }
   try {
     const [leads, logs] = await Promise.all([
-      query<Lead>("SELECT id, name, email, phone, message, created_at FROM leads ORDER BY created_at DESC LIMIT 100"),
+      query<Lead>(
+        "SELECT id, name, email, phone, message, call_status, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
+      ),
       query<ImportLogRow>(
         "SELECT id, message_id, status, email, phone, parsed_via, error_message, created_at FROM import_log ORDER BY created_at DESC LIMIT 20"
       ),
@@ -77,6 +81,7 @@ export default async function HomePage() {
                     <th>Telefonas</th>
                     <th>Žinutė</th>
                     <th>Sukurta</th>
+                    <th>Skambutis</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -89,6 +94,9 @@ export default async function HomePage() {
                         {lead.message || "—"}
                       </td>
                       <td className="muted">{formatDate(lead.created_at)}</td>
+                      <td>
+                        <CallStatusControl leadId={lead.id} initialStatus={lead.call_status} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>

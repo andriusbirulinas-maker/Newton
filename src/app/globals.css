@@ -8,6 +8,7 @@
   --accent: #2563eb;
   --success: #059669;
   --error: #dc2626;
+  --warning: #d97706;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +21,7 @@
     --accent: #60a5fa;
     --success: #34d399;
     --error: #f87171;
+    --warning: #fbbf24;
   }
 }
 
@@ -116,3 +118,31 @@ th {
   color: var(--muted);
   padding: 20px 0;
 }
+
+.call-status {
+  display: flex;
+  gap: 6px;
+}
+
+.call-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.call-dot:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.call-dot-not-called { background: color-mix(in srgb, var(--warning) 30%, transparent); }
+.call-dot-answered { background: color-mix(in srgb, var(--success) 30%, transparent); }
+.call-dot-no-answer { background: color-mix(in srgb, var(--error) 30%, transparent); }
+
+.call-dot-not-called.active { background: var(--warning); border-color: var(--warning); }
+.call-dot-answered.active { background: var(--success); border-color: var(--success); }
+.call-dot-no-answer.active { background: var(--error); border-color: var(--error); }
