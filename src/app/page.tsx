@@ -68,30 +68,32 @@ export default async function HomePage() {
           {leads.length === 0 ? (
             <p className="empty-state">Kol kas nėra importuotų lead&apos;ų.</p>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Vardas</th>
-                  <th>El. paštas</th>
-                  <th>Telefonas</th>
-                  <th>Žinutė</th>
-                  <th>Sukurta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead) => (
-                  <tr key={lead.id}>
-                    <td>{lead.name}</td>
-                    <td className="muted">{lead.email || "—"}</td>
-                    <td className="muted">{lead.phone || "—"}</td>
-                    <td className="muted" style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
-                      {lead.message || "—"}
-                    </td>
-                    <td className="muted">{formatDate(lead.created_at)}</td>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vardas</th>
+                    <th>El. paštas</th>
+                    <th>Telefonas</th>
+                    <th>Žinutė</th>
+                    <th>Sukurta</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <tr key={lead.id}>
+                      <td>{lead.name}</td>
+                      <td className="muted">{lead.email || "—"}</td>
+                      <td className="muted">{lead.phone || "—"}</td>
+                      <td className="muted" style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
+                        {lead.message || "—"}
+                      </td>
+                      <td className="muted">{formatDate(lead.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -102,30 +104,32 @@ export default async function HomePage() {
           {logs.length === 0 ? (
             <p className="empty-state">Kol kas nieko nebuvo bandyta importuoti.</p>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Būsena</th>
-                  <th>Kontaktas</th>
-                  <th>Būdas</th>
-                  <th>Klaida</th>
-                  <th>Kada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>
-                      <span className={`status-badge status-${log.status}`}>{log.status}</span>
-                    </td>
-                    <td className="muted">{log.email || log.phone || "—"}</td>
-                    <td className="muted">{log.parsed_via || "—"}</td>
-                    <td className="muted">{log.error_message || "—"}</td>
-                    <td className="muted">{formatDate(log.created_at)}</td>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Būsena</th>
+                    <th>Kontaktas</th>
+                    <th>Būdas</th>
+                    <th>Klaida</th>
+                    <th>Kada</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.id}>
+                      <td>
+                        <span className={`status-badge status-${log.status}`}>{log.status}</span>
+                      </td>
+                      <td className="muted">{log.email || log.phone || "—"}</td>
+                      <td className="muted">{log.parsed_via || "—"}</td>
+                      <td className="muted">{log.error_message || "—"}</td>
+                      <td className="muted">{formatDate(log.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

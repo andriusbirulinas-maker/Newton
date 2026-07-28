@@ -79,10 +79,14 @@ h1 {
   cursor: default;
 }
 
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
   font-size: 0.9rem;
 }
 
