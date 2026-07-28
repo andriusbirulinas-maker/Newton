@@ -136,3 +136,20 @@ th {
 .trainer-select:disabled {
   opacity: 0.6;
 }
+
+.notes-input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  min-width: 160px;
+  max-width: 220px;
+  resize: vertical;
+}
+
+.notes-input:disabled {
+  opacity: 0.6;
+}

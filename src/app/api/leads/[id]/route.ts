@@ -48,13 +48,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     setClauses.push(`training_type = $${values.length}`);
   }
 
+  if ("notes" in body) {
+    const notes = body.notes;
+    if (notes !== null && typeof notes !== "string") {
+      return NextResponse.json({ error: "Neteisingos pastabos" }, { status: 400 });
+    }
+    values.push(notes);
+    setClauses.push(`notes = $${values.length}`);
+  }
+
   if (setClauses.length === 0) {
     return NextResponse.json({ error: "Nėra ką atnaujinti" }, { status: 400 });
   }
 
   values.push(leadId);
   const updated = await queryOne(
-    `UPDATE leads SET ${setClauses.join(", ")} WHERE id = $${values.length} RETURNING id, call_status, trainer_id, training_type`,
+    `UPDATE leads SET ${setClauses.join(", ")} WHERE id = $${values.length} RETURNING id, call_status, trainer_id, training_type, notes`,
     values
   );
 

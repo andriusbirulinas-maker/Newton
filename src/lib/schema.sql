@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS leads (
   call_status TEXT NOT NULL DEFAULT 'not_called' CHECK (call_status IN ('not_called', 'answered', 'no_answer')),
   trainer_id INTEGER REFERENCES trainers(id) ON DELETE SET NULL,
   training_type TEXT CHECK (training_type IN ('kineziterapija', 'asmenine_treniruote', 'mini_grupine', 'grupine_treniruote')),
+  notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
