@@ -8,6 +8,7 @@ interface ImportRunResult {
   imported: number;
   skipped: number;
   errors: number;
+  gaveUp: number;
 }
 
 export function ReimportButton() {
@@ -49,7 +50,8 @@ export function ReimportButton() {
       {result && (
         <p style={{ color: "var(--success)" }}>
           Patikrinta {result.processed} laiškų — sukurta {result.imported} nauji lead&apos;ai, {result.skipped} jau
-          buvo, {result.errors} su klaidomis.
+          buvo, {result.errors} su klaidomis
+          {result.gaveUp > 0 ? `, ${result.gaveUp} atmesta po pakartotinių bandymų` : ""}.
         </p>
       )}
     </div>
