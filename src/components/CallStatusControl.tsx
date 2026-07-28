@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 export type CallStatus = "not_called" | "answered" | "no_answer";
 
 const OPTIONS: { value: CallStatus; label: string; className: string }[] = [
-  { value: "not_called", label: "Neskambinta", className: "call-dot-not-called" },
-  { value: "answered", label: "Paskambinta", className: "call-dot-answered" },
-  { value: "no_answer", label: "Neprisiskambinta", className: "call-dot-no-answer" },
+  { value: "not_called", label: "Neskambinta", className: "call-select-not-called" },
+  { value: "answered", label: "Paskambinta", className: "call-select-answered" },
+  { value: "no_answer", label: "Neprisiskambinta", className: "call-select-no-answer" },
 ];
 
 export function CallStatusControl({ leadId, initialStatus }: { leadId: number; initialStatus: CallStatus }) {
@@ -16,7 +16,8 @@ export function CallStatusControl({ leadId, initialStatus }: { leadId: number; i
   const [status, setStatus] = useState<CallStatus>(initialStatus);
   const [pending, setPending] = useState(false);
 
-  async function setCallStatus(next: CallStatus) {
+  async function handleChange(value: string) {
+    const next = value as CallStatus;
     if (next === status || pending) return;
     setPending(true);
     const previous = status;
@@ -36,20 +37,21 @@ export function CallStatusControl({ leadId, initialStatus }: { leadId: number; i
     }
   }
 
+  const activeClassName = OPTIONS.find((opt) => opt.value === status)?.className ?? "";
+
   return (
-    <div className="call-status" role="group" aria-label="Skambučio būsena">
+    <select
+      className={`trainer-select ${activeClassName}`}
+      value={status}
+      disabled={pending}
+      onChange={(e) => handleChange(e.target.value)}
+      aria-label="Skambučio būsena"
+    >
       {OPTIONS.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          title={opt.label}
-          aria-label={opt.label}
-          aria-pressed={status === opt.value}
-          disabled={pending}
-          className={`call-dot ${opt.className} ${status === opt.value ? "active" : ""}`}
-          onClick={() => setCallStatus(opt.value)}
-        />
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
       ))}
-    </div>
+    </select>
   );
 }
