@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import { ReimportButton } from "@/components/ReimportButton";
 import { CallStatusControl, type CallStatus } from "@/components/CallStatusControl";
 import { TrainerAssignSelect, type TrainerOption } from "@/components/TrainerAssignSelect";
+import { TrainingTypeSelect, type TrainingType } from "@/components/TrainingTypeSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ interface Lead {
   interest: string | null;
   call_status: CallStatus;
   trainer_id: number | null;
+  training_type: TrainingType | null;
   created_at: string;
 }
 
@@ -45,7 +47,7 @@ async function loadData(): Promise<{
   try {
     const [leads, logs, trainers] = await Promise.all([
       query<Lead>(
-        "SELECT id, name, email, phone, message, interest, call_status, trainer_id, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
+        "SELECT id, name, email, phone, message, interest, call_status, trainer_id, training_type, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
       ),
       query<ImportLogRow>(
         "SELECT id, message_id, status, email, phone, parsed_via, error_message, created_at FROM import_log ORDER BY created_at DESC LIMIT 20"
@@ -98,6 +100,7 @@ export default async function HomePage() {
                     <th>Sukurta</th>
                     <th>Skambutis</th>
                     <th>Priskirtas treneris</th>
+                    <th>Treniruotė</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -116,6 +119,9 @@ export default async function HomePage() {
                       </td>
                       <td>
                         <TrainerAssignSelect leadId={lead.id} trainers={trainers} initialTrainerId={lead.trainer_id} />
+                      </td>
+                      <td>
+                        <TrainingTypeSelect leadId={lead.id} initialType={lead.training_type} />
                       </td>
                     </tr>
                   ))}

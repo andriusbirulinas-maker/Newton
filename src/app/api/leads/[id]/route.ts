@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const VALID_STATUSES = new Set(["not_called", "answered", "no_answer"]);
+const VALID_TRAINING_TYPES = new Set(["kineziterapija", "asmenine_treniruote", "mini_grupine", "grupine_treniruote"]);
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,13 +39,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     setClauses.push(`trainer_id = $${values.length}`);
   }
 
+  if ("trainingType" in body) {
+    const trainingType = body.trainingType;
+    if (trainingType !== null && (typeof trainingType !== "string" || !VALID_TRAINING_TYPES.has(trainingType))) {
+      return NextResponse.json({ error: "Neteisingas treniruotės tipas" }, { status: 400 });
+    }
+    values.push(trainingType);
+    setClauses.push(`training_type = $${values.length}`);
+  }
+
   if (setClauses.length === 0) {
     return NextResponse.json({ error: "Nėra ką atnaujinti" }, { status: 400 });
   }
 
   values.push(leadId);
   const updated = await queryOne(
-    `UPDATE leads SET ${setClauses.join(", ")} WHERE id = $${values.length} RETURNING id, call_status, trainer_id`,
+    `UPDATE leads SET ${setClauses.join(", ")} WHERE id = $${values.length} RETURNING id, call_status, trainer_id, training_type`,
     values
   );
 
