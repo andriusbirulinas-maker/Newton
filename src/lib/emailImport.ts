@@ -1,7 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
-import { query, queryOne } from "./db";
-import { claudeParseLead, regexParseLead, type ParsedLead } from "./leadParser";
+import { claudeParseLead, regexParseLead } from "./leadParser";
+import { alreadyHandled, countErrorAttempts, findExistingLead, insertLead, logImportResult } from "./leadStore";
 
 const MAX_EMAILS = 25;
 const TIME_BUDGET_MS = 50_000;
@@ -13,68 +13,6 @@ export interface ImportRunResult {
   skipped: number;
   errors: number;
   gaveUp: number;
-}
-
-async function alreadyHandled(messageId: string): Promise<boolean> {
-  const row = await queryOne(
-    "SELECT 1 FROM import_log WHERE message_id = $1 AND status IN ('imported','skipped')",
-    [messageId]
-  );
-  return Boolean(row);
-}
-
-async function countErrorAttempts(messageId: string): Promise<number> {
-  const row = await queryOne<{ count: string }>(
-    "SELECT count(*) FROM import_log WHERE message_id = $1 AND status = 'error'",
-    [messageId]
-  );
-  return row ? Number(row.count) : 0;
-}
-
-async function logResult(entry: {
-  messageId: string;
-  status: "imported" | "skipped" | "error";
-  leadId?: number | null;
-  email?: string | null;
-  phone?: string | null;
-  parsedVia?: "regex" | "claude" | null;
-  errorMessage?: string | null;
-  rawBody?: string | null;
-}): Promise<void> {
-  await query(
-    `INSERT INTO import_log (message_id, status, lead_id, email, phone, parsed_via, error_message, raw_body)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      entry.messageId,
-      entry.status,
-      entry.leadId ?? null,
-      entry.email ?? null,
-      entry.phone ?? null,
-      entry.parsedVia ?? null,
-      entry.errorMessage ?? null,
-      entry.rawBody ?? null,
-    ]
-  );
-}
-
-async function findExistingLead(email: string | null, phone: string | null): Promise<{ id: number } | undefined> {
-  if (email) {
-    const byEmail = await queryOne<{ id: number }>("SELECT id FROM leads WHERE email = $1", [email]);
-    if (byEmail) return byEmail;
-  }
-  if (phone) {
-    const byPhone = await queryOne<{ id: number }>("SELECT id FROM leads WHERE phone = $1", [phone]);
-    if (byPhone) return byPhone;
-  }
-  return undefined;
-}
-
-async function insertLead(lead: ParsedLead): Promise<number> {
-  const row = await queryOne<{ id: number }>(
-    "INSERT INTO leads (name, email, phone, message, interest) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-    [lead.name, lead.email, lead.phone, lead.message, lead.interest]
-  );
-  return row!.id;
 }
 
 async function ensureFolder(client: ImapFlow, folder: string): Promise<void> {
@@ -149,7 +87,7 @@ export async function runEmailImport(): Promise<ImportRunResult> {
           }
 
           if (!lead) {
-            await logResult({ messageId, status: "error", errorMessage: "Nepavyko išparsinti kliento duomenų", rawBody });
+            await logImportResult({ messageId, status: "error", errorMessage: "Nepavyko išparsinti kliento duomenų", rawBody });
             result.errors += 1;
 
             if ((await countErrorAttempts(messageId)) >= MAX_ERROR_ATTEMPTS) {
@@ -162,7 +100,7 @@ export async function runEmailImport(): Promise<ImportRunResult> {
 
           const existing = await findExistingLead(lead.email, lead.phone);
           if (existing) {
-            await logResult({
+            await logImportResult({
               messageId,
               status: "skipped",
               leadId: existing.id,
@@ -173,7 +111,7 @@ export async function runEmailImport(): Promise<ImportRunResult> {
             result.skipped += 1;
           } else {
             const leadId = await insertLead(lead);
-            await logResult({
+            await logImportResult({
               messageId,
               status: "imported",
               leadId,
@@ -190,7 +128,7 @@ export async function runEmailImport(): Promise<ImportRunResult> {
           if (!counted) result.processed += 1;
           result.errors += 1;
           const message = err instanceof Error ? err.message : String(err);
-          await logResult({ messageId, status: "error", errorMessage: message, rawBody });
+          await logImportResult({ messageId, status: "error", errorMessage: message, rawBody });
           console.error(`El. laiško importo klaida (${messageId}):`, message);
 
           try {

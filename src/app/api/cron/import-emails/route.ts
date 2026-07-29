@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runEmailImport } from "@/lib/emailImport";
+import { runAllImports } from "@/lib/runImports";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ async function handleImport(req: NextRequest) {
   }
 
   try {
-    const result = await runEmailImport();
+    const result = await runAllImports();
     return NextResponse.json(result);
   } catch (err) {
     console.error("El. laiškų importo klaida:", err instanceof Error ? err.message : err);

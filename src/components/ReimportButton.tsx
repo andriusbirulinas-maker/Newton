@@ -11,10 +11,23 @@ interface ImportRunResult {
   gaveUp: number;
 }
 
+interface MetaAdsImportResult {
+  processed: number;
+  imported: number;
+  skipped: number;
+  errors: number;
+}
+
+interface CombinedImportResult {
+  email: ImportRunResult;
+  metaAds: MetaAdsImportResult | null;
+  metaAdsError: string | null;
+}
+
 export function ReimportButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [result, setResult] = useState<ImportRunResult | null>(null);
+  const [result, setResult] = useState<CombinedImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
@@ -43,16 +56,25 @@ export function ReimportButton() {
         </button>
       </div>
       <p className="muted">
-        Automatiškai kas kelias minutes tikrinamas paštas dėl naujų klientų užklausų. Šis mygtukas paleidžia
-        patikrinimą iškart, nelaukiant kito automatinio ciklo.
+        Automatiškai kas kelias minutes tikrinamas paštas (ir Meta reklamos, jei sukonfigūruotos) dėl naujų klientų
+        užklausų. Šis mygtukas paleidžia patikrinimą iškart, nelaukiant kito automatinio ciklo.
       </p>
       {error && <p style={{ color: "var(--error)" }}>{error}</p>}
       {result && (
-        <p style={{ color: "var(--success)" }}>
-          Patikrinta {result.processed} laiškų — sukurta {result.imported} nauji lead&apos;ai, {result.skipped} jau
-          buvo, {result.errors} su klaidomis
-          {result.gaveUp > 0 ? `, ${result.gaveUp} atmesta po pakartotinių bandymų` : ""}.
-        </p>
+        <div style={{ color: "var(--success)" }}>
+          <p>
+            El. paštas: patikrinta {result.email.processed} — sukurta {result.email.imported}, {result.email.skipped}{" "}
+            jau buvo, {result.email.errors} su klaidomis
+            {result.email.gaveUp > 0 ? `, ${result.email.gaveUp} atmesta po pakartotinių bandymų` : ""}.
+          </p>
+          {result.metaAds && (
+            <p>
+              Meta reklamos: patikrinta {result.metaAds.processed} — sukurta {result.metaAds.imported},{" "}
+              {result.metaAds.skipped} jau buvo, {result.metaAds.errors} su klaidomis.
+            </p>
+          )}
+          {result.metaAdsError && <p style={{ color: "var(--error)" }}>Meta reklamų klaida: {result.metaAdsError}</p>}
+        </div>
       )}
     </div>
   );

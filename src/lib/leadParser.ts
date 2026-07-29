@@ -6,6 +6,7 @@ export interface ParsedLead {
   phone: string | null;
   message: string | null;
   interest: string | null;
+  source: "website" | "meta_email";
 }
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -114,7 +115,8 @@ function extractInterest(text: string): string | null {
 
 export function regexParseLead(text: string): ParsedLead | null {
   const message = findMessage(text);
-  const name = findLabeledValue(text, LABELS.name) ?? extractName(text) ?? (message ? NO_NAME_PLACEHOLDER : null);
+  const nameFromLabel = findLabeledValue(text, LABELS.name);
+  const name = nameFromLabel ?? extractName(text) ?? (message ? NO_NAME_PLACEHOLDER : null);
 
   const emailRaw = findLabeledValue(text, LABELS.email) ?? text.match(EMAIL_RE)?.[0] ?? null;
   const email = emailRaw && EMAIL_RE.test(emailRaw) ? emailRaw.match(EMAIL_RE)![0] : null;
@@ -126,7 +128,10 @@ export function regexParseLead(text: string): ParsedLead | null {
 
   if (!name || (!email && !phone)) return null;
 
-  return { name, email, phone, message, interest };
+  // The "Vardas Pavardė:" label only appears in forwarded Meta ad lead emails.
+  const source: ParsedLead["source"] = nameFromLabel ? "meta_email" : "website";
+
+  return { name, email, phone, message, interest, source };
 }
 
 let anthropicClient: Anthropic | null = null;
@@ -191,5 +196,5 @@ export async function claudeParseLead(text: string): Promise<ParsedLead | null> 
   const phone = normalizePhone(input.phone ?? null);
   if (!email && !phone) return null;
 
-  return { name: input.name, email, phone, message: input.message ?? null, interest: input.interest ?? null };
+  return { name: input.name, email, phone, message: input.message ?? null, interest: input.interest ?? null, source: "website" };
 }

@@ -18,8 +18,18 @@ interface Lead {
   trainer_id: number | null;
   training_type: TrainingType | null;
   notes: string | null;
+  source: "website" | "meta_email" | "meta_api" | null;
+  campaign_name: string | null;
+  adset_name: string | null;
+  ad_name: string | null;
   created_at: string;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  website: "Svetainė",
+  meta_email: "Meta (el. paštas)",
+  meta_api: "Meta (API)",
+};
 
 interface ImportLogRow {
   id: number;
@@ -49,7 +59,9 @@ async function loadData(): Promise<{
   try {
     const [leads, logs, trainers] = await Promise.all([
       query<Lead>(
-        "SELECT id, name, email, phone, message, interest, call_status, trainer_id, training_type, notes, created_at FROM leads ORDER BY created_at DESC LIMIT 100"
+        `SELECT id, name, email, phone, message, interest, call_status, trainer_id, training_type, notes,
+                source, campaign_name, adset_name, ad_name, created_at
+         FROM leads ORDER BY created_at DESC LIMIT 100`
       ),
       query<ImportLogRow>(
         "SELECT id, message_id, status, email, phone, parsed_via, error_message, created_at FROM import_log ORDER BY created_at DESC LIMIT 20"
@@ -104,6 +116,8 @@ export default async function HomePage() {
                     <th>Priskirtas treneris</th>
                     <th>Treniruotė</th>
                     <th>Pastabos</th>
+                    <th>Šaltinis</th>
+                    <th>Reklama</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -128,6 +142,16 @@ export default async function HomePage() {
                       </td>
                       <td>
                         <NotesInput leadId={lead.id} initialNotes={lead.notes} />
+                      </td>
+                      <td className="muted">{(lead.source && SOURCE_LABELS[lead.source]) || "—"}</td>
+                      <td className="muted">
+                        {lead.ad_name || lead.campaign_name ? (
+                          <span title={[lead.campaign_name, lead.adset_name, lead.ad_name].filter(Boolean).join(" / ")}>
+                            {lead.ad_name || lead.campaign_name}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS leads (
   trainer_id INTEGER REFERENCES trainers(id) ON DELETE SET NULL,
   training_type TEXT CHECK (training_type IN ('kineziterapija', 'asmenine_treniruote', 'mini_grupine', 'grupine_treniruote')),
   notes TEXT,
+  source TEXT CHECK (source IN ('website', 'meta_email', 'meta_api')),
+  campaign_name TEXT,
+  adset_name TEXT,
+  ad_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -25,7 +29,7 @@ CREATE TABLE IF NOT EXISTS import_log (
   lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
   email TEXT,
   phone TEXT,
-  parsed_via TEXT CHECK (parsed_via IN ('regex', 'claude')),
+  parsed_via TEXT CHECK (parsed_via IN ('regex', 'claude', 'meta_api')),
   error_message TEXT,
   raw_body TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

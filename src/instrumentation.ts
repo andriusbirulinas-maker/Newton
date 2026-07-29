@@ -8,20 +8,33 @@ export async function register() {
   globalForScheduler.__emailImportScheduled = true;
 
   const { runEmailImport } = await import("./lib/emailImport");
+  const { runMetaAdsImport } = await import("./lib/metaAdsImport");
 
   async function tick() {
-    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASSWORD || !process.env.DATABASE_URL) {
-      return;
-    }
-    try {
-      const result = await runEmailImport();
-      if (result.processed > 0) {
-        console.log(
-          `[email-import] patikrinta ${result.processed}, importuota ${result.imported}, praleista ${result.skipped}, klaidų ${result.errors}`
-        );
+    if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD && process.env.DATABASE_URL) {
+      try {
+        const result = await runEmailImport();
+        if (result.processed > 0) {
+          console.log(
+            `[email-import] patikrinta ${result.processed}, importuota ${result.imported}, praleista ${result.skipped}, klaidų ${result.errors}`
+          );
+        }
+      } catch (err) {
+        console.error("[email-import] periodinio tikrinimo klaida:", err instanceof Error ? err.message : err);
       }
-    } catch (err) {
-      console.error("[email-import] periodinio tikrinimo klaida:", err instanceof Error ? err.message : err);
+    }
+
+    if (process.env.META_PAGE_ID && process.env.META_ACCESS_TOKEN && process.env.DATABASE_URL) {
+      try {
+        const result = await runMetaAdsImport();
+        if (result.processed > 0) {
+          console.log(
+            `[meta-ads-import] patikrinta ${result.processed}, importuota ${result.imported}, praleista ${result.skipped}, klaidų ${result.errors}`
+          );
+        }
+      } catch (err) {
+        console.error("[meta-ads-import] periodinio tikrinimo klaida:", err instanceof Error ? err.message : err);
+      }
     }
   }
 
