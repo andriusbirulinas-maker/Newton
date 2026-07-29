@@ -57,15 +57,27 @@ function extractName(fields: MetaLeadField[]): string | null {
   return combined || null;
 }
 
+// Leadgen endpoints require a Page Access Token, not the System User/User token
+// stored in META_ACCESS_TOKEN — exchange it for the page-scoped token on each run.
+async function getPageAccessToken(pageId: string, userToken: string): Promise<string> {
+  const data = await graphGet<{ access_token?: string }>(`/${pageId}?fields=access_token`, userToken);
+  if (!data.access_token) {
+    throw new Error("Nepavyko gauti Page Access Token — patikrink, ar sistemos vartotojas turi prieigą prie puslapio");
+  }
+  return data.access_token;
+}
+
 export async function runMetaAdsImport(): Promise<MetaAdsImportResult> {
   const pageId = process.env.META_PAGE_ID;
-  const accessToken = process.env.META_ACCESS_TOKEN;
+  const userToken = process.env.META_ACCESS_TOKEN;
 
-  if (!pageId || !accessToken) {
+  if (!pageId || !userToken) {
     throw new Error("META_PAGE_ID arba META_ACCESS_TOKEN nenustatyti");
   }
 
   const result: MetaAdsImportResult = { processed: 0, imported: 0, skipped: 0, errors: 0 };
+
+  const accessToken = await getPageAccessToken(pageId, userToken);
 
   const forms = await graphGet<GraphListResponse<{ id: string; name: string }>>(
     `/${pageId}/leadgen_forms?fields=id,name`,
