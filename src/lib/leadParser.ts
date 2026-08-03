@@ -20,6 +20,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   if (digits.startsWith("+370") && digits.length === 12) return digits;
   if (digits.startsWith("370") && digits.length === 11) return `+${digits}`;
   if (digits.startsWith("8") && digits.length === 9) return `+370${digits.slice(1)}`;
+  if (digits.startsWith("0") && digits.length === 9) return `+370${digits.slice(1)}`;
   if (digits.startsWith("+8") && digits.length === 10) return `+370${digits.slice(2)}`;
 
   return null;
@@ -116,7 +117,10 @@ function extractInterest(text: string): string | null {
 export function regexParseLead(text: string): ParsedLead | null {
   const message = findMessage(text);
   const nameFromLabel = findLabeledValue(text, LABELS.name);
-  const name = nameFromLabel ?? extractName(text) ?? (message ? NO_NAME_PLACEHOLDER : null);
+  // When a "Tekstas:" message is present, this is the general-inquiry template, which never
+  // has a real name field — skip extractName() entirely so its wrapped continuation lines
+  // (which don't start with a known label) can't get mistaken for a person's name.
+  const name = nameFromLabel ?? (message ? NO_NAME_PLACEHOLDER : extractName(text));
 
   const emailRaw = findLabeledValue(text, LABELS.email) ?? text.match(EMAIL_RE)?.[0] ?? null;
   const email = emailRaw && EMAIL_RE.test(emailRaw) ? emailRaw.match(EMAIL_RE)![0] : null;
