@@ -1,5 +1,5 @@
 import { normalizePhone } from "./leadParser";
-import { alreadyHandled, findExistingLead, insertLead, logImportResult } from "./leadStore";
+import { alreadyHandled, findExistingLead, insertLead, logImportResult, logTerminalResult } from "./leadStore";
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -57,6 +57,15 @@ function extractName(fields: MetaLeadField[]): string | null {
   return combined || null;
 }
 
+// Different lead forms name the phone field differently depending on how they were built.
+function extractPhone(fields: MetaLeadField[]): string | null {
+  for (const candidate of ["phone_number", "phone", "phone_num", "mobile_number"]) {
+    const value = fieldValue(fields, candidate);
+    if (value) return value;
+  }
+  return null;
+}
+
 // Leadgen endpoints require a Page Access Token, not the System User/User token
 // stored in META_ACCESS_TOKEN — exchange it for the page-scoped token on each run.
 async function getPageAccessToken(pageId: string, userToken: string): Promise<string> {
@@ -105,7 +114,7 @@ export async function runMetaAdsImport(): Promise<MetaAdsImportResult> {
 
       const name = extractName(lead.field_data);
       const email = fieldValue(lead.field_data, "email");
-      const phone = normalizePhone(fieldValue(lead.field_data, "phone_number"));
+      const phone = normalizePhone(extractPhone(lead.field_data));
 
       if (!name || (!email && !phone)) {
         await logImportResult({
@@ -120,15 +129,11 @@ export async function runMetaAdsImport(): Promise<MetaAdsImportResult> {
 
       const existing = await findExistingLead(email, phone);
       if (existing) {
-        await logImportResult({
-          messageId,
-          status: "skipped",
-          leadId: existing.id,
-          email,
-          phone,
-          parsedVia: "meta_api",
-        });
-        result.skipped += 1;
+        const outcome = await logTerminalResult(
+          { messageId, status: "skipped", leadId: existing.id, email, phone, parsedVia: "meta_api" },
+          null
+        );
+        if (outcome === "logged") result.skipped += 1;
         continue;
       }
 
@@ -141,15 +146,11 @@ export async function runMetaAdsImport(): Promise<MetaAdsImportResult> {
         adsetName: lead.adset_name ?? null,
         adName: lead.ad_name ?? null,
       });
-      await logImportResult({
-        messageId,
-        status: "imported",
-        leadId,
-        email,
-        phone,
-        parsedVia: "meta_api",
-      });
-      result.imported += 1;
+      const outcome = await logTerminalResult(
+        { messageId, status: "imported", leadId, email, phone, parsedVia: "meta_api" },
+        leadId
+      );
+      if (outcome === "logged") result.imported += 1;
     }
   }
 

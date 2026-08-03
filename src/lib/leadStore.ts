@@ -12,6 +12,12 @@ export interface NewLead {
   adName?: string | null;
 }
 
+// Thrown when a concurrent import run (e.g. local dev + production polling at the same
+// moment) already committed a terminal (imported/skipped) log row for this message_id.
+export class ConcurrentImportError extends Error {}
+
+const POSTGRES_UNIQUE_VIOLATION = "23505";
+
 export async function alreadyHandled(messageId: string): Promise<boolean> {
   const row = await queryOne(
     "SELECT 1 FROM import_log WHERE message_id = $1 AND status IN ('imported','skipped')",
@@ -38,20 +44,27 @@ export async function logImportResult(entry: {
   errorMessage?: string | null;
   rawBody?: string | null;
 }): Promise<void> {
-  await query(
-    `INSERT INTO import_log (message_id, status, lead_id, email, phone, parsed_via, error_message, raw_body)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      entry.messageId,
-      entry.status,
-      entry.leadId ?? null,
-      entry.email ?? null,
-      entry.phone ?? null,
-      entry.parsedVia ?? null,
-      entry.errorMessage ?? null,
-      entry.rawBody ?? null,
-    ]
-  );
+  try {
+    await query(
+      `INSERT INTO import_log (message_id, status, lead_id, email, phone, parsed_via, error_message, raw_body)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        entry.messageId,
+        entry.status,
+        entry.leadId ?? null,
+        entry.email ?? null,
+        entry.phone ?? null,
+        entry.parsedVia ?? null,
+        entry.errorMessage ?? null,
+        entry.rawBody ?? null,
+      ]
+    );
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === POSTGRES_UNIQUE_VIOLATION) {
+      throw new ConcurrentImportError(`message_id ${entry.messageId} jau apdorotas lygiagrečiai kito importo bandymo`);
+    }
+    throw err;
+  }
 }
 
 export async function findExistingLead(email: string | null, phone: string | null): Promise<{ id: number } | undefined> {
@@ -83,4 +96,27 @@ export async function insertLead(lead: NewLead): Promise<number> {
     ]
   );
   return row!.id;
+}
+
+export async function deleteLead(id: number): Promise<void> {
+  await query("DELETE FROM leads WHERE id = $1", [id]);
+}
+
+// Wraps the "create lead, then log the terminal result" sequence so that if a concurrent
+// import run already claimed this message_id first, we back out our own speculative
+// lead row instead of leaving a duplicate behind.
+export async function logTerminalResult(
+  entry: Parameters<typeof logImportResult>[0],
+  createdLeadId: number | null
+): Promise<"logged" | "conflict"> {
+  try {
+    await logImportResult(entry);
+    return "logged";
+  } catch (err) {
+    if (err instanceof ConcurrentImportError) {
+      if (createdLeadId !== null) await deleteLead(createdLeadId);
+      return "conflict";
+    }
+    throw err;
+  }
 }

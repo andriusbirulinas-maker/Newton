@@ -39,3 +39,8 @@ CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone);
 CREATE INDEX IF NOT EXISTS idx_import_log_message_id ON import_log(message_id);
 CREATE INDEX IF NOT EXISTS idx_import_log_created_at ON import_log(created_at DESC);
+
+-- Guards against the same message being imported twice by two concurrent import runs
+-- (e.g. local dev instrumentation and production cron polling at the same moment).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_import_log_terminal_message_id
+  ON import_log(message_id) WHERE status IN ('imported', 'skipped');

@@ -1,7 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { claudeParseLead, regexParseLead } from "./leadParser";
-import { alreadyHandled, countErrorAttempts, findExistingLead, insertLead, logImportResult } from "./leadStore";
+import { alreadyHandled, countErrorAttempts, findExistingLead, insertLead, logImportResult, logTerminalResult } from "./leadStore";
 
 const MAX_EMAILS = 25;
 const TIME_BUDGET_MS = 50_000;
@@ -100,26 +100,18 @@ export async function runEmailImport(): Promise<ImportRunResult> {
 
           const existing = await findExistingLead(lead.email, lead.phone);
           if (existing) {
-            await logImportResult({
-              messageId,
-              status: "skipped",
-              leadId: existing.id,
-              email: lead.email,
-              phone: lead.phone,
-              parsedVia,
-            });
-            result.skipped += 1;
+            const outcome = await logTerminalResult(
+              { messageId, status: "skipped", leadId: existing.id, email: lead.email, phone: lead.phone, parsedVia },
+              null
+            );
+            if (outcome === "logged") result.skipped += 1;
           } else {
             const leadId = await insertLead(lead);
-            await logImportResult({
-              messageId,
-              status: "imported",
-              leadId,
-              email: lead.email,
-              phone: lead.phone,
-              parsedVia,
-            });
-            result.imported += 1;
+            const outcome = await logTerminalResult(
+              { messageId, status: "imported", leadId, email: lead.email, phone: lead.phone, parsedVia },
+              leadId
+            );
+            if (outcome === "logged") result.imported += 1;
           }
 
           await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
