@@ -1,4 +1,6 @@
-const INTERVAL_MS = 5 * 60 * 1000;
+// 20 min (not 5) to stay within Vercel Hobby's compute quota — this only drives the local
+// dev/`npm start` scheduler; on Vercel the real trigger is the external cron-job.org schedule.
+const INTERVAL_MS = 20 * 60 * 1000;
 
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
