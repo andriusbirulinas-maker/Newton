@@ -5,13 +5,7 @@ import { TrainerAssignSelect, type TrainerOption } from "@/components/TrainerAss
 import { TrainingTypeSelect, type TrainingType } from "@/components/TrainingTypeSelect";
 import { NotesInput } from "@/components/NotesInput";
 
-// Statically generated at build/deploy time instead of on every request — this avoids
-// invoking a Vercel serverless function (and its compute quota) just to view the page.
-// Downside: the leads list is a snapshot as of the last deploy, and the interactive
-// controls (call status, notes, trainer, reimport) still hit API routes that require
-// live compute, so they won't work until the quota resets. Revert to "force-dynamic"
-// once that happens.
-export const revalidate = false;
+export const dynamic = "force-dynamic";
 
 interface Lead {
   id: number;
@@ -91,13 +85,6 @@ export default async function HomePage() {
     <main>
       <h1>Lead Importer</h1>
       <p className="muted">Klientų užklausų importas iš el. pašto.</p>
-
-      <div className="card" style={{ borderColor: "var(--warning)" }}>
-        <p style={{ color: "var(--warning)", margin: 0 }}>
-          ⚠️ Vercel kompiuterio kvota išnaudota — puslapis rodo kontaktų nuotrauką iš paskutinio atnaujinimo,
-          o automatinis importas ir mygtukai laikinai neveikia, kol kvota atsinaujins.
-        </p>
-      </div>
 
       <div className="card">
         <ReimportButton />
